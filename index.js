@@ -29,10 +29,17 @@ async function run() {
 
 
     const userCollection = client.db("assigment-twelveDb").collection("user");
+    const reviewCollection = client.db("assigment-twelveDb").collection("review");
 
     // get all premium user
   app.get('/user', async(req, res)=>{
     const result = await userCollection.find().toArray();
+    res.send(result);
+  })
+
+  // get all review
+  app.get('/review', async(req, res)=>{
+    const result = await reviewCollection.find().toArray();
     res.send(result);
   })
 
