@@ -63,8 +63,15 @@ async function run() {
     const result = await userCollection.find(query).toArray();
     res.send(result);
   })
+// add single review to review collection
+app.post('/review', async(req,res)=>{
+  const reviewItem = req.body;
+  const result = await reviewCollection.insertOne(reviewItem);
+  res.send(result);
+})
 
 
+// ----------------------------------------------------------------
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
