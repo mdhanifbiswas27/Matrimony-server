@@ -78,14 +78,16 @@ const verifyToken = (req, res, next)=>{
       const result = await biodataCollection.find(query).toArray();
       res.send(result);
     })
-    
-    // biodata item get by email
-    app.get('/biodata', async(req, res)=>{
-      const email = req.query.email;
-      const query = { email : email};
+
+    // get bio data by email
+    app.get('/biodata/:email', async (req, res) => {
+      const id = req.params.email;
+      const query = { email: email }
       const result = await biodataCollection.find(query).toArray();
       res.send(result);
     })
+    
+   
 
 
     // add single biodata
