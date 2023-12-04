@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+var jwt = require('jsonwebtoken');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
@@ -32,13 +33,41 @@ async function run() {
     const reviewCollection = client.db("assigment-twelveDb").collection("review");
     const biodataCollection = client.db("assigment-twelveDb").collection("biodata");
 
+
+// jwt related api
+app.post('/jwt', async(req, res)=>{
+  const user =req.body;
+  const token = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'});
+    res.send({token});
+})
+
+// verify token middlewares
+const verifyToken = (req, res, next)=>{
+  console.log('inside verify token', req.headers.authorization);
+
+  if(!req.headers.authorization){
+    return res.status(401).send({message: 'forbidden access'});
+  }
+  const token = req.headers.authorization.split(' ')[1];
+  
+  
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded)=>{
+    if(err){
+      return res.status(401).send({message: 'forbidden access'})
+    }
+    req.decoded = decoded;
+    next();
+  })
+}
+
     // get all premium user
     app.get('/user', async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     })
     // get all bio data
-    app.get('/biodata', async (req, res) => {
+    app.get('/biodata', verifyToken, async (req, res) => {
+      console.log(req.headers);
       const result = await biodataCollection.find().toArray();
       res.send(result);
     })
@@ -84,6 +113,19 @@ async function run() {
        res.send(result);
     })
 
+    // api for make admin
+    app.patch('/biodata/admin/:id', async(req, res)=>{
+      const id = req.params.id;
+      const filter = {_id:new ObjectId(id)};
+      const updatedDoc = {
+          $set:{
+            role: 'admin'
+          }
+      }
+      const result = await biodataCollection.updateOne(filter,updatedDoc);
+      res.send(result);
+    })
+
     // get all review
     app.get('/review', async (req, res) => {
       const result = await reviewCollection.find().toArray();
@@ -127,7 +169,40 @@ async function run() {
       }
       const result = await biodataCollection.updateOne(filter, bioData, options);
       res.send(result);
-    })
+    });
+
+
+    // check admin
+     app.get('/biodata/admin/:email',verifyToken , async(req,res)=>{
+        const email = req.params.email;
+        if(email !== req.decoded.email){
+          return res.status(403).send({message: 'unauthorized access'});
+         
+        }
+        const query ={email: email};
+        console.log(query);
+          const biodata = await biodataCollection.findOne(query);
+          console.log(biodata);
+          let admin = false;
+          if(biodata){
+            admin = biodata?.role == 'admin';
+          } 
+          res.send({admin});
+     })
+   
+    //  admvn verify and log out ohter
+    const verifyAdmin = async (req, res, next) =>{
+      const email = req.decoded.email;
+      const c = {email : email};
+      const user = await biodataCollection.findOne(biodataCollection);
+      const isAdmin = user?.role === 'admin';
+      if(!isAdmin){
+        return res.status(403).send({message: 'forbidden access'});
+      }
+      next();
+    }
+
+
       
     // ----------------------------------------------------------------
     // Send a ping to confirm a successful connection
